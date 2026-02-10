@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Form</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div class="container">
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
+            </div>
+            <button type="submit">Login</button>
+            <div id="message"></div>
+        </form>
+    </div>
+    <script>
+        const form = document.getElementById('loginForm');
+        const messageDiv = document.getElementById('message');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            messageDiv.textContent = '';
+            messageDiv.className = '';
+
+            const email = form.email.value.trim();
+            const password = form.password.value;
+            //validacion de email 
+            if (!email.includes('@') || !email.includes('.')) {
+                messageDiv.textContent = 'Invalid email. Must include domain and .';
+                messageDiv.className = 'error';
+                return;
+            }
+            //validacion de password
+            if (password.length < 1) {
+                messageDiv.textContent = 'Password cannot be empty.';
+                messageDiv.className = 'error';
+                return;
+            }
+            //mensaje de exito
+            messageDiv.textContent = 'Login successful!';
+            messageDiv.className = 'success';
+        });
+    </script>
+</body>
+</html>
