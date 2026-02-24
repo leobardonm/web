@@ -7,15 +7,7 @@
     <link rel="stylesheet" href="login.css">
 </head>
 <body>
-    <header>
-        <h1>Agregar elementos</h1>
-        <nav>
-            <a href="login.html">Login</a> |
-            <a href="register.html">Registro</a> |
-            <a href="about.html">Acerca de</a> |
-            <a href="contact.html">Contacto</a>
-        </nav>
-    </header>
+    <div id="header"></div>
     <div class="container">
         <form id="loginForm">
             <div class="form-group">
@@ -31,9 +23,17 @@
         </form>
     </div>
     <footer>
-        <p>&copy; 2026 Agregar elementos</p>
-    </footer>
+    <div id="footer"></div>
     <script>
+        // Cargar header y footer
+        fetch('header.html')
+          .then(res => res.text())
+          .then(html => document.getElementById('header').innerHTML = html);
+        fetch('footer.html')
+          .then(res => res.text())
+          .then(html => document.getElementById('footer').innerHTML = html);
+
+        // Login y sesión
         const form = document.getElementById('loginForm');
         const messageDiv = document.getElementById('message');
 
@@ -56,9 +56,20 @@
                 messageDiv.className = 'error';
                 return;
             }
-            //mensaje de exito
-            messageDiv.textContent = 'Login successful!';
-            messageDiv.className = 'success';
+            // Simulación de credenciales correctas
+            if(email === 'usuario@demo.com' && password === '1234') {
+                // Guardar token de sesión
+                localStorage.setItem('userToken', 'demoToken');
+                messageDiv.textContent = 'Login successful!';
+                messageDiv.className = 'success';
+                // Redirigir a página interior
+                setTimeout(() => {
+                    window.location.href = 'about.html';
+                }, 1200);
+            } else {
+                messageDiv.textContent = 'Credenciales incorrectas.';
+                messageDiv.className = 'error';
+            }
         });
     </script>
 </body>
