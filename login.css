@@ -7,3 +7,104 @@ input[type="email"], input[type="password"], input[type="text"] { width: 100%; p
 .error { color: #c62828; margin-top: 8px; }
 button { width: 100%; padding: 10px; background: #1976d2; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
 button:hover { background: #1565c0; }
+
+.pokemon-container {
+	max-width: 1200px;
+}
+
+.pokemon-filters {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 12px;
+	align-items: end;
+	margin: 18px 0;
+}
+
+.pokemon-filters select,
+.pokemon-filters input[type="number"] {
+	width: 100%;
+	padding: 8px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+}
+
+.pokemon-status {
+	margin: 10px 0 16px;
+	color: #1f2937;
+}
+
+.pokemon-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+	gap: 14px;
+}
+
+.pokemon-card {
+	border: 1px solid #dbe3ea;
+	border-radius: 10px;
+	padding: 14px;
+	background: #f9fbfd;
+}
+
+.pokemon-card img {
+	width: 120px;
+	height: 120px;
+	object-fit: contain;
+	display: block;
+	margin: 0 auto 8px;
+}
+
+.pokemon-card h3 {
+	margin: 0 0 8px;
+	text-align: center;
+}
+
+.pokemon-card p {
+	margin: 6px 0;
+}
+
+.type-list {
+	margin-top: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-items: center;
+}
+
+.type-chip {
+	border-radius: 999px;
+	padding: 2px 8px;
+	font-size: 12px;
+	font-weight: 600;
+	color: #fff;
+}
+
+.type-grass { background: #43a047; }
+.type-fire { background: #ef6c00; }
+.type-water { background: #1e88e5; }
+.type-bug { background: #7cb342; }
+.type-normal { background: #8d8d6b; }
+.type-poison { background: #8e24aa; }
+.type-electric { background: #f9a825; }
+.type-ground { background: #8d6e63; }
+.type-fairy { background: #ec407a; }
+.type-fighting { background: #c62828; }
+.type-psychic { background: #d81b60; }
+.type-rock { background: #6d4c41; }
+.type-ghost { background: #5e35b1; }
+.type-ice { background: #00acc1; }
+.type-dragon { background: #3949ab; }
+.type-dark { background: #37474f; }
+.type-steel { background: #546e7a; }
+.type-flying { background: #5c6bc0; }
+
+@media (max-width: 768px) {
+	.container {
+		margin: 24px 14px;
+		max-width: none;
+	}
+
+	.pokemon-grid {
+		grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	}
+}
