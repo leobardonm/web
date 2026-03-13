@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batalla Pokemon</title>
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div id="header"></div>
+
+    <div class="container battle-container">
+        <h2>Batalla Pokemon</h2>
+        <p>Elige dos Pokemon y observa la pelea por turnos.</p>
+
+        <div class="battle-controls">
+            <div class="form-group">
+                <label for="pokemon1-input">Pokemon 1 (nombre o ID)</label>
+                <input list="pokemon-options" id="pokemon1-input" type="text" placeholder="Ejemplo: pikachu o 25">
+            </div>
+            <div class="form-group">
+                <label for="pokemon2-input">Pokemon 2 (nombre o ID)</label>
+                <input list="pokemon-options" id="pokemon2-input" type="text" placeholder="Ejemplo: charizard o 6">
+            </div>
+            <datalist id="pokemon-options"></datalist>
+            <button type="button" id="start-battle">Iniciar batalla</button>
+        </div>
+
+        <p id="battle-status" class="pokemon-status">Cargando opciones de Pokemon...</p>
+
+        <section class="fighters" id="fighters-section" aria-live="polite">
+            <article class="fighter-card" id="fighter-1-card"></article>
+            <article class="fighter-card" id="fighter-2-card"></article>
+        </section>
+
+        <section class="battle-log-section">
+            <h3>Bitacora de combate</h3>
+            <ul id="battle-log" class="battle-log"></ul>
+        </section>
+
+        <section id="winner-section" class="winner-section hidden">
+            <h3>Ganador</h3>
+            <img id="winner-image" alt="Pokemon ganador">
+            <p id="winner-name"></p>
+        </section>
+    </div>
+
+    <footer>
+        <div id="footer"></div>
+    </footer>
+
+<script>
+fetch('header.html')
+    .then(res => res.text())
+    .then(html => document.getElementById('header').innerHTML = html);
+fetch('footer.html')
+    .then(res => res.text())
+    .then(html => document.getElementById('footer').innerHTML = html);
+
+if (!localStorage.getItem('userToken')) {
+    window.location.href = 'login.html';
+}
+
+const pokemon1Input = document.getElementById('pokemon1-input');
+const pokemon2Input = document.getElementById('pokemon2-input');
+const pokemonOptions = document.getElementById('pokemon-options');
+const startBattleButton = document.getElementById('start-battle');
+const battleStatus = document.getElementById('battle-status');
+const battleLog = document.getElementById('battle-log');
+const fighter1Card = document.getElementById('fighter-1-card');
+const fighter2Card = document.getElementById('fighter-2-card');
+const winnerSection = document.getElementById('winner-section');
+const winnerImage = document.getElementById('winner-image');
+const winnerName = document.getElementById('winner-name');
+
+let battleInProgress = false;
+
+function capitalize(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function toQueryValue(value) {
+    return value.trim().toLowerCase();
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getStat(stats, statName) {
+    const stat = stats.find(item => item.stat.name === statName);
+    return stat ? stat.base_stat : 50;
+}
+
+function renderFighterCard(container, fighter) {
+    container.innerHTML = `
+        <img src="${fighter.image}" alt="${fighter.name}">
+        <h4>${capitalize(fighter.name)} (#${fighter.id})</h4>
+        <p><strong>Tipos:</strong> ${fighter.types.map(capitalize).join(', ')}</p>
+        <p><strong>Ataque:</strong> ${fighter.stats.attack}</p>
+        <p><strong>Defensa:</strong> ${fighter.stats.defense}</p>
+        <p><strong>Ataque especial:</strong> ${fighter.stats.specialAttack}</p>
+        <p><strong>Vida:</strong> ${Math.max(0, fighter.hp).toFixed(1)}%</p>
+        <div class="health-bar-wrap">
+            <div class="health-bar" style="width:${Math.max(0, fighter.hp)}%"></div>
+        </div>
+    `;
+}
+
+function refreshFighterCards(fighterA, fighterB) {
+    renderFighterCard(fighter1Card, fighterA);
+    renderFighterCard(fighter2Card, fighterB);
+}
+
+async function addLog(message, className) {
+    const item = document.createElement('li');
+    item.textContent = message;
+    if (className) {
+        item.className = className;
+    }
+    battleLog.appendChild(item);
+    battleLog.scrollTop = battleLog.scrollHeight;
+    await sleep(850);
+}
+
+function chooseAction(fighter) {
+    const actions = ['basicAttack'];
+
+    if (fighter.turnsTaken >= 3) {
+        actions.push('specialAttack');
+    }
+    if (fighter.turnsTaken >= 2) {
+        actions.push('specialDefense');
+    }
+
+    return actions[Math.floor(Math.random() * actions.length)];
+}
+
+function calculateDamage(attacker, defender, isSpecialAttack) {
+    const attackStat = isSpecialAttack ? attacker.stats.specialAttack : attacker.stats.attack;
+    const defenseStat = Math.max(1, defender.stats.defense);
+    const randomFactor = 0.85 + Math.random() * 0.35;
+    let damage = ((attackStat / defenseStat) * 18 + (isSpecialAttack ? 12 : 7)) * randomFactor;
+
+    if (defender.blockCharges > 0) {
+        damage *= 0.55;
+        defender.blockCharges -= 1;
+    }
+
+    return Math.max(4, Math.min(40, Math.round(damage)));
+}
+
+function cloneBattlePokemon(pokemon) {
+    return {
+        id: pokemon.id,
+        name: pokemon.name,
+        image: pokemon.image,
+        types: [...pokemon.types],
+        stats: { ...pokemon.stats },
+        hp: 100,
+        turnsTaken: 0,
+        blockCharges: 0
+    };
+}
+
+async function fetchPokemonData(inputValue) {
+    const query = toQueryValue(inputValue);
+    if (!query) {
+        throw new Error('Debes ingresar ambos Pokemon.');
+    }
+
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${encodeURIComponent(query)}`);
+    if (!response.ok) {
+        throw new Error(`No se encontro el Pokemon: ${inputValue}`);
+    }
+
+    const data = await response.json();
+
+    return {
+        id: data.id,
+        name: data.name,
+        image: data.sprites.other['official-artwork'].front_default || data.sprites.front_default || '',
+        types: data.types.map(item => item.type.name),
+        stats: {
+            attack: getStat(data.stats, 'attack'),
+            defense: getStat(data.stats, 'defense'),
+            specialAttack: getStat(data.stats, 'special-attack')
+        }
+    };
+}
+
+async function loadPokemonOptions() {
+    try {
+        const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1302&offset=0');
+        const data = await response.json();
+
+        const fragment = document.createDocumentFragment();
+        data.results.forEach((pokemon, index) => {
+            const option = document.createElement('option');
+            option.value = pokemon.name;
+            option.label = `#${index + 1} ${capitalize(pokemon.name)}`;
+            fragment.appendChild(option);
+        });
+
+        pokemonOptions.appendChild(fragment);
+        battleStatus.textContent = 'Opciones cargadas. Elige dos Pokemon y comienza la batalla.';
+    } catch (error) {
+        console.error(error);
+        battleStatus.textContent = 'No se pudieron cargar las opciones de Pokemon.';
+    }
+}
+
+async function runBattle(basePokemonA, basePokemonB) {
+    const pokemonA = cloneBattlePokemon(basePokemonA);
+    const pokemonB = cloneBattlePokemon(basePokemonB);
+
+    refreshFighterCards(pokemonA, pokemonB);
+    battleLog.innerHTML = '';
+    winnerSection.classList.add('hidden');
+
+    let attacker = Math.random() < 0.5 ? pokemonA : pokemonB;
+    let defender = attacker === pokemonA ? pokemonB : pokemonA;
+    let round = 1;
+
+    await addLog(`Comienza la batalla entre ${capitalize(pokemonA.name)} y ${capitalize(pokemonB.name)}.`, 'log-event');
+
+    while (pokemonA.hp > 0 && pokemonB.hp > 0) {
+        attacker.turnsTaken += 1;
+
+        await addLog(`Turno ${round}: ataca ${capitalize(attacker.name)}.`, 'log-turn');
+
+        const action = chooseAction(attacker);
+
+        if (action === 'specialDefense') {
+            const defenseFailed = Math.random() < 0.25;
+
+            if (defenseFailed) {
+                await addLog(`${capitalize(attacker.name)} intento Defensa Especial, pero fallo.`, 'log-fail');
+            } else {
+                attacker.blockCharges = 2;
+                await addLog(`${capitalize(attacker.name)} uso Defensa Especial. Reducira dano en los proximos 2 golpes recibidos.`, 'log-defense');
+            }
+        } else {
+            const isSpecialAttack = action === 'specialAttack';
+            const missChance = isSpecialAttack ? 0.22 : 0.14;
+            const attackFailed = Math.random() < missChance;
+            const attackName = isSpecialAttack ? 'Ataque Especial' : 'Ataque Basico';
+
+            if (attackFailed) {
+                await addLog(`${capitalize(attacker.name)} uso ${attackName}, pero fallo.`, 'log-fail');
+            } else {
+                const damage = calculateDamage(attacker, defender, isSpecialAttack);
+                defender.hp = Math.max(0, defender.hp - damage);
+
+                await addLog(
+                    `${capitalize(attacker.name)} uso ${attackName}. Hizo ${damage}% de dano. ` +
+                    `${capitalize(defender.name)} queda con ${defender.hp.toFixed(1)}% de vida.`,
+                    'log-attack'
+                );
+            }
+        }
+
+        refreshFighterCards(pokemonA, pokemonB);
+
+        if (defender.hp <= 0) {
+            break;
+        }
+
+        const temp = attacker;
+        attacker = defender;
+        defender = temp;
+        round += 1;
+    }
+
+    const winner = pokemonA.hp > 0 ? pokemonA : pokemonB;
+
+    await addLog(`Fin de la batalla. Ganador: ${capitalize(winner.name)}.`, 'log-win');
+
+    winnerImage.src = winner.image;
+    winnerImage.alt = winner.name;
+    winnerName.textContent = `${capitalize(winner.name)} es el ganador.`;
+    winnerSection.classList.remove('hidden');
+}
+
+startBattleButton.addEventListener('click', async () => {
+    if (battleInProgress) {
+        return;
+    }
+
+    const valueA = pokemon1Input.value;
+    const valueB = pokemon2Input.value;
+
+    battleStatus.textContent = 'Preparando batalla...';
+
+    try {
+        battleInProgress = true;
+        startBattleButton.disabled = true;
+
+        const [pokemonA, pokemonB] = await Promise.all([
+            fetchPokemonData(valueA),
+            fetchPokemonData(valueB)
+        ]);
+
+        await runBattle(pokemonA, pokemonB);
+        battleStatus.textContent = 'Batalla finalizada. Puedes iniciar otra.';
+    } catch (error) {
+        console.error(error);
+        battleStatus.textContent = error.message || 'No se pudo iniciar la batalla.';
+    } finally {
+        battleInProgress = false;
+        startBattleButton.disabled = false;
+    }
+});
+
+loadPokemonOptions();
+</script>
+</body>
+</html>
