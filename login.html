@@ -56,13 +56,13 @@
                 messageDiv.className = 'error';
                 return;
             }
-            // Simulación de credenciales correctas
-            if(email === 'usuario@demo.com' && password === '1234') {
-                // Guardar token de sesión
+            // Validar contra usuarios registrados
+            let users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => u.email === email && u.password === password);
+            if (user) {
                 localStorage.setItem('userToken', 'demoToken');
                 messageDiv.textContent = 'Login successful!';
                 messageDiv.className = 'success';
-                // Redirigir a página interior
                 setTimeout(() => {
                     window.location.href = 'about.html';
                 }, 1200);

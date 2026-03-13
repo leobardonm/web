@@ -8,10 +8,16 @@
 </head>
 <body>
     <div id="header"></div>
-    <div class="container">
-        <h2>Acerca de</h2>
-        <p>Esta es una página de ejemplo para la sección "Acerca de" de tu proyecto web.</p>
-    </div>
+        <div class="container">
+            <h2>Acerca de</h2>
+            <p>Esta es una página de ejemplo para la sección "Acerca de" de tu proyecto web.</p>
+            <div id="pokemon">
+                <h3>Pokémon destacado</h3>
+                <div id="pokemon-info">
+                    <p>Cargando Pokémon...</p>
+                </div>
+            </div>
+        </div>
     <footer>
         <div id="footer"></div>
     </footer>
@@ -28,6 +34,20 @@ fetch('footer.html')
 if (!localStorage.getItem('userToken')) {
     window.location.href = 'login.html';
 }
+
+// Mostrar imagen y nombre de un Pokémon usando PokeAPI
+fetch('https://pokeapi.co/api/v2/pokemon/pikachu')
+    .then(res => res.json())
+    .then(data => {
+        const infoDiv = document.getElementById('pokemon-info');
+        infoDiv.innerHTML = `
+            <img src="${data.sprites.front_default}" alt="${data.name}" style="width:120px;height:120px;">
+            <p><strong>Nombre:</strong> ${data.name.charAt(0).toUpperCase() + data.name.slice(1)}</p>
+        `;
+    })
+    .catch(() => {
+        document.getElementById('pokemon-info').innerHTML = '<p>No se pudo cargar el Pokémon.</p>';
+    });
 </script>
 </body>
 </html>

@@ -43,6 +43,44 @@ fetch('footer.html')
 if (!localStorage.getItem('userToken')) {
     window.location.href = 'login.html';
 }
+
+// Registro funcionalidad
+const registerForm = document.getElementById('registerForm');
+const messageDiv = document.getElementById('message');
+registerForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    messageDiv.textContent = '';
+    messageDiv.className = '';
+    const name = registerForm.name.value.trim();
+    const email = registerForm.email.value.trim();
+    const password = registerForm.password.value;
+    // Validación básica
+    if (!name || !email || !password) {
+        messageDiv.textContent = 'Todos los campos son obligatorios.';
+        messageDiv.className = 'error';
+        return;
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+        messageDiv.textContent = 'Email inválido.';
+        messageDiv.className = 'error';
+        return;
+    }
+    // Guardar usuario en localStorage
+    let users = JSON.parse(localStorage.getItem('users') || '[]');
+    // Verificar si el email ya existe
+    if (users.some(u => u.email === email)) {
+        messageDiv.textContent = 'El email ya está registrado.';
+        messageDiv.className = 'error';
+        return;
+    }
+    const user = { name, email, password };
+    users.push(user);
+    localStorage.setItem('users', JSON.stringify(users));
+    console.log('Usuario registrado:', user);
+    messageDiv.textContent = 'Registro exitoso. Ahora puedes iniciar sesión.';
+    messageDiv.className = 'success';
+    registerForm.reset();
+});
 </script>
 </body>
 </html>
